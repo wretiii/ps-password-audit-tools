@@ -1,4 +1,6 @@
-﻿# Prompt for the file path of the NTLM hashes file
+$FormatEnumerationLimit = -1
+
+# Prompt for the file path of the NTLM hashes file
 $ntlmFile = Read-Host "Enter the file path for the NTLM hashes file"
 
 # Prompt for the file path of the Hashcat pot file of cracked hashes
@@ -29,7 +31,7 @@ $combinedHashes = Get-Content $crackedFile | ForEach-Object {
     }
 } | Group-Object -Property Password -AsHashTable -AsString
 
-# Sort the combined hashes by the number of accounts using the same password
+# Sort the combined hashes by the count of accounts using the same password in descending order
 $sortedHashes = $combinedHashes.GetEnumerator() | Sort-Object { $_.Value.Count } -Descending
 
 # Prompt to display all results or results for a specified string
@@ -48,36 +50,39 @@ else {
 }
 
 # Output the matched usernames for each password
-$adminResults = @()
-$resultText = ""
-
-foreach ($hashEntry in $results) {
-    $password = $hashEntry.Key
-    $usernames = $hashEntry.Value | Select-Object -ExpandProperty Username
+$results = $sortedHashes | ForEach-Object {
+    $password = $_.Key
+    $usernames = $_.Value | Select-Object -ExpandProperty Username
     $count = $usernames.Count
 
-    if ($usernames -like "*admin*") {
-        $adminResults += "$password ($count) : $($usernames -join ', ')"
-    } else {
-        $resultText += "$password ($count) : $($usernames -join ', ')" + "`n"
+    [PSCustomObject]@{
+        Password = $password
+        Count = $count
+        Usernames = $usernames -join ', '
     }
 }
+
+# Sort the results by the count of accounts in descending order
+$results = $results | Sort-Object -Property Count -Descending
 
 # Output the results to the terminal
 Write-Host "Results:"
-if ($adminResults.Count -gt 0) {
-    $adminResults | ForEach-Object {
-        Write-Host $_
-    }
+
+$results | ForEach-Object {
+    $password = $_.Password
+    $count = $_.Count
+    $usernames = $_.Usernames
+
+    Write-Host "$password ($count) : $usernames"
 }
 
-if ($resultText.Length -gt 0) {
-    Write-Host $resultText
-}
 # Prompt to save the output to a text file
 $saveOption = Read-Host "Do you want to save the results to a text file? (Y/N)"
 if ($saveOption -eq "Y") {
     $fileName = Read-Host "Enter the file name to save the results"
     $fileName += ".txt"
-    $resultText | Out-File -FilePath $fileName
+    $results | ForEach-Object {
+        $line = "$($_.Password) ($($_.Count)) : $($_.Usernames)"
+        Add-Content -Path $fileName -Value $line
+    }
 }
