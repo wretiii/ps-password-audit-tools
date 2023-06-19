@@ -1,4 +1,4 @@
-﻿# Prompt for the file path of the NTLM hashes file
+# Prompt for the file path of the NTLM hashes file
 $ntlmFile = Read-Host "Enter the file path for the NTLM hashes file"
 
 # Prompt for the file path of the Hashcat pot file of cracked hashes
@@ -37,25 +37,34 @@ if ($displayOption -eq "2") {
     $combinedHashes = $combinedHashes | Where-Object { $_.Username -like "*$filterString*" }
 }
 
-# Sort the combined hashes by username
+# Sort the combined hashes by username in alphabetical order
 $sortedHashes = $combinedHashes | Sort-Object -Property Username
+
+# Output the results to the terminal and save to a text file
+$output = $sortedHashes | ForEach-Object {
+    $username = $_.Username
+    $password = $_.Password
+    foreach ($user in $username) {
+        foreach ($pass in $password) {
+            "${user}:$pass"
+        }
+    }
+}
+
+# Prompt to save the output to a file
+$saveToFile = Read-Host "Do you want to save the output to a file? (Y/N)"
+
+if ($saveToFile -eq "Y" -or $saveToFile -eq "y") {
+    # Prompt for the file name
+    $fileName = Read-Host "Enter the file name"
+
+    # Save the output to a text file
+    $outputFilePath = "$PWD\$fileName.txt"
+    $output | Sort-Object | Out-File -FilePath $outputFilePath
+
+    Write-Host "Output saved to $outputFilePath"
+}
 
 # Output the results to the terminal
 Write-Host "Results:"
-
-$results = $sortedHashes | ForEach-Object {
-    $username = $_.Username
-    $password = $_.Password
-    "${username}:$password"
-}
-
-# Prompt to save the output to a text file
-$saveOption = Read-Host "Do you want to save the results to a text file? (Y/N)"
-if ($saveOption -eq "Y") {
-    $fileName = Read-Host "Enter the file name to save the results"
-    $fileName += ".txt"
-    $results | Out-File -FilePath $fileName
-}
-
-# Output the results to the terminal
-$results
+$output | Sort-Object
