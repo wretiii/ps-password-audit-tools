@@ -1,10 +1,20 @@
-$FormatEnumerationLimit = -1
+Add-Type -AssemblyName System.Windows.Forms
 
 # Prompt for the file path of the NTLM hashes file
-$ntlmFile = Read-Host "Enter the file path for the NTLM hashes file"
+$openFileDialog = New-Object System.Windows.Forms.OpenFileDialog
+$openFileDialog.Title = "Select NTLM File"
+$openFileDialog.ShowDialog() | Out-Null
+
+$ntlmFile = $openFileDialog.FileName
 
 # Prompt for the file path of the Hashcat pot file of cracked hashes
-$crackedFile = Read-Host "Enter the file path for the Hashcat pot file of cracked hashes"
+$openFileDialog.Title = "Select Cracked File"
+$openFileDialog.ShowDialog() | Out-Null
+
+$crackedFile = $openFileDialog.FileName
+
+Write-Output "NTLM file: $ntlmFile"
+Write-Output "Cracked file: $crackedFile"
 
 # Read the NTLM hashes from the file into a hash table for faster lookup
 $ntlmHashes = Get-Content $ntlmFile | ForEach-Object {
@@ -31,7 +41,7 @@ $combinedHashes = Get-Content $crackedFile | ForEach-Object {
     }
 } | Group-Object -Property Password -AsHashTable -AsString
 
-# Sort the combined hashes by the count of accounts using the same password in descending order
+# Sort the combined hashes by the number of accounts using the same password
 $sortedHashes = $combinedHashes.GetEnumerator() | Sort-Object { $_.Value.Count } -Descending
 
 # Prompt to display all results or results for a specified string
@@ -50,39 +60,55 @@ else {
 }
 
 # Output the matched usernames for each password
-$results = $sortedHashes | ForEach-Object {
-    $password = $_.Key
-    $usernames = $_.Value | Select-Object -ExpandProperty Username
+$adminResults = @()
+$resultText = ""
+
+foreach ($hashEntry in $results) {
+    $password = $hashEntry.Key
+    $usernames = $hashEntry.Value | Select-Object -ExpandProperty Username
     $count = $usernames.Count
 
-    [PSCustomObject]@{
-        Password = $password
-        Count = $count
-        Usernames = $usernames -join ', '
+    if ($usernames -like "*admin*") {
+        $adminResults += "$password ($count) : $($usernames -join ', ')"
+    } else {
+        $resultText += "$password ($count) : $($usernames -join ', ')" + "`n"
     }
 }
-
-# Sort the results by the count of accounts in descending order
-$results = $results | Sort-Object -Property Count -Descending
 
 # Output the results to the terminal
 Write-Host "Results:"
-
-$results | ForEach-Object {
-    $password = $_.Password
-    $count = $_.Count
-    $usernames = $_.Usernames
-
-    Write-Host "$password ($count) : $usernames"
+if ($adminResults.Count -gt 0) {
+    $adminResults | ForEach-Object {
+        Write-Host $_
+    }
 }
 
-# Prompt to save the output to a text file
-$saveOption = Read-Host "Do you want to save the results to a text file? (Y/N)"
+if ($resultText.Length -gt 0) {
+    Write-Host $resultText
+}
+
+# Prompt to save the output to a CSV file
+$saveOption = Read-Host "Do you want to save the results to a CSV file? (Y/N)"
 if ($saveOption -eq "Y") {
     $fileName = Read-Host "Enter the file name to save the results"
-    $fileName += ".txt"
-    $results | ForEach-Object {
-        $line = "$($_.Password) ($($_.Count)) : $($_.Usernames)"
-        Add-Content -Path $fileName -Value $line
+    $fileName += ".csv"
+
+    $csvContent = $results | Sort-Object { $_.Value.Count } -Descending | ForEach-Object {
+        $password = $_.Key
+        $usernames = $_.Value | Select-Object -ExpandProperty Username
+        $count = $usernames.Count
+
+        [PSCustomObject]@{
+            Password = $password
+            Count = $count
+            Usernames = $usernames -join ', '
+        }
     }
+
+    $csvContent | Sort-Object Count -Descending | Export-Csv -Path $fileName -NoTypeInformation
+
+    # Output the results to the terminal again
+    Write-Host "Results saved to $fileName"
+} else {
+    Write-Host "Results not saved."
 }
