@@ -7,4 +7,4 @@ Both scripts have the option to list the full output or search specific strings,
 
 hash-combine.ps1 - Combine the file of raw NTLM hashes with the Hashcat potfile to display user:pass in the terminal.
 
-password-reuse.ps1 - Combine the file of raw NTLM hashes with the Hashcat potfile to display in descending order the password, the number of times that password is used by an account, and the accounts using the password.
+password-reuse.ps1 - Load the NTDS.dit file to display in descending order the password hash, the frequency the hash occurs in the file, and the accounts using the password. The script will prompt for the option to save to the output to a .CSV file.
