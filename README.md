@@ -5,7 +5,7 @@ Example hash input: Administrator:500:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d
 
 Both scripts have the option to list the full output or search specific strings, eg 'admin', as well as the option to save the output to a text file.
 
-#### hash-combine.ps1
+## hash-combine.ps1
 Combine the file of raw NTLM hashes with the Hashcat potfile to display user:pass in the terminal.
 
 ### password-reuse.ps1
