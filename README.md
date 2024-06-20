@@ -7,5 +7,5 @@ Combine the file of raw NTLM hashes with the Hashcat potfile to display user:pas
 ## password-reuse.ps1
 Load the file of NTLM hashes to display in descending order the password hash, the frequency the hash occurs in the file, and the accounts using the password. The script will prompt for the option to save to the output to a .CSV file.
 
-### Example hash input
+### ***Example hash input***
 **Administrator:500:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::**
